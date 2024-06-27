@@ -1,15 +1,18 @@
-# {
-#   1: 'X', # top left
-#   2: ' ', # top center
-#   3: ' ', # top right
-#   4: ' ', # middle left
-#   5: 'O', # center
-#   6: ' ', # middle right
-#   7: ' ', # bottom left
-#   8: ' ', # bottom center
-#   9: 'X',  # bottom right
-# }
+import random
+import os
+
+INITIAL_MARKER = ' '
+HUMAN_MARKER = 'X'
+COMPUTER_MARKER = 'O'
+WINS_NEEDED = 5
+
+def prompt(message):
+    print(f'==> {message}')
+
 def display_board(board):
+    os.system('clear')
+
+    prompt(f"You are {HUMAN_MARKER}. Computer is {COMPUTER_MARKER}.")
     print('')
     print('     |     |')
     print(f"  {board[1]}  |  {board[2]}  |  {board[3]}")
@@ -25,27 +28,117 @@ def display_board(board):
     print('')
 
 def initialize_board():
-    return {square: ' ' for square in range(1, 10)}
+    return {square: INITIAL_MARKER for square in range(1, 10)}
 
-def prompt(message):
-    print(f'==> {message}')
+def empty_squares(board):
+    return [key for key, value in board.items()
+            if value == INITIAL_MARKER]
+
+def join_or(lst, conj1=', ', conj2='or'):
+    # insert conjunctions before the last element
+    # return string of sequence of elements + conjunctions + last element
+    res = []
+    if not lst:
+        return ""
+    elif len(lst) == 1:
+        return str(lst[0])
+    elif len(lst) == 2:
+        return f"{lst[0]} {conj2} {lst[1]}"
+    else:
+        res = conj1.join(str(num) for num in lst[0:-1])
+        return f"{res}{conj1}{conj2} {lst[-1]}"
+
 
 def player_chooses_square(board):
-    empty_squares = [key for key, value in board.items() if value == ' ']
-
     while True:
-        prompt('Choose a square (1-9):')
-        square = int(input().strip())
-        if square in empty_squares:
+        valid_choices = [str(num) for num in empty_squares(board)]
+        prompt(f"Choose a square ({join_or(valid_choices)}):")
+        square = input().strip()
+        if square in valid_choices:
             break
+        
+        prompt("Sorry, that's not a valid choice.")
+
+    board[int(square)] = HUMAN_MARKER
+
+def computer_chooses_square(board):
+    if len(empty_squares(board)) == 0:
+        return
+    square = random.choice(empty_squares(board))
+    board[square] = COMPUTER_MARKER
+
+def board_full(board):
+    return len(empty_squares(board)) == 0
+
+def someone_won(board):
+    return bool(detect_winner(board))
+
+def detect_winner(board):
+    winning_lines = [
+        [1, 2, 3], [4, 5, 6], [7, 8, 9],  # rows
+        [1, 4, 7], [2, 5, 8], [3, 6, 9],  # columns
+        [1, 5, 9], [3, 5, 7]              # diagonals
+    ]
+
+    for line in winning_lines:
+        sq1, sq2, sq3 = line
+        if (board[sq1] == HUMAN_MARKER
+            and board[sq2] == HUMAN_MARKER
+            and board[sq3] == HUMAN_MARKER):
+            return 'Player'
+        elif (board [sq1] == COMPUTER_MARKER
+            and board[sq2] == COMPUTER_MARKER
+            and board[sq3] == COMPUTER_MARKER):
+            return 'Computer'
+    
+    return None
+
+def play_tic_tac_toe():
+    player_score = 0
+    computer_score = 0
+    while True:
+        board = initialize_board()
+
+        while True:
+            display_board(board)
+
+            player_chooses_square(board)
+            if someone_won(board) or board_full(board):
+                break
+
+            computer_chooses_square(board)
+            if someone_won(board) or board_full(board):
+                break
+        
+        display_board(board)
+
+        if someone_won(board):
+            prompt(f"{detect_winner(board)} won!")
         else:
-            prompt("Sorry, that's not a valid choice.")
+            prompt("It's a tie!")
 
-    board[int(square)] = 'X'
+        if detect_winner(board) == "Player":
+            player_score += 1
+        elif detect_winner(board) == "Computer":
+            computer_score += 1
+    
+        if player_score == WINS_NEEDED:
+            prompt("Congrats! Player Wins!")
+        elif computer_score == WINS_NEEDED:
+            prompt("Get good! Computer wins!")
+        else:
+            prompt(f"Score: player({player_score}): computer({computer_score})")
+        
+        if player_score == WINS_NEEDED or computer_score == WINS_NEEDED:
+            break
+                
+        prompt("Play again? (y or n)")
+        answer = input().lower()
 
-board = initialize_board()
-display_board(board)
+        if answer[0] != 'y':
+            break
 
-player_chooses_square(board)
-display_board(board)
+    prompt('Thanks for playing Tic Tac Toe!')
+
+play_tic_tac_toe()
 
